@@ -373,7 +373,7 @@ public class ControllerGame
     public void zapnoutKostku(boolean b)
     {
         kostka.setDisable(!b);
-        kostka.setOpacity((b) ? 1 : 0.75);
+        kostka.setOpacity((b) ? 1 : 0.5);
     }
 
     private void obarvitKostku(String barva)
