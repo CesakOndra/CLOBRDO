@@ -6,6 +6,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.util.Arrays;
+
 public class Main extends Application
 {
 
@@ -29,6 +33,8 @@ public class Main extends Application
         Parent root = loader.load();
 
         myStage = primaryStage;
+        System.out.println(Inet4Address.getLocalHost().getHostAddress());
+        System.out.println(InetAddress.getLocalHost().getHostAddress());
 
         ControllerMenu controllerMenu = loader.getController();
         controllerMenu.pripravitMenu();

@@ -3,6 +3,10 @@ package com.company.app;
 import com.company.model.BarvaFigurky;
 import com.company.model.Figurka;
 import com.company.model.HraciPlocha1;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -11,11 +15,22 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ControllerGame
 {
+    private boolean multiplayer;
+
+    public void setMultiplayer(boolean multiplayer)
+    {
+        this.multiplayer = multiplayer;
+    }
 
     public final String[] barvy = new String[]
             {
@@ -60,26 +75,82 @@ public class ControllerGame
 
     private static boolean hranPolicka;
 
-    public void startHry(int pocetHracu, int pocetFigurek, int velikostPlochy, int pocetSten, boolean hp)
+    public void startHry(int pocetHracu, int pocetFigurek, int velikostPlochy, int pocetSten, boolean hp) throws IOException
     {
+        plocha.novaHraciPlocha();
+
         hranPolicka = hp;
 
-        plocha.pripravitHru(
-                pocetHracu,
-                pocetSten,
-                velikostPlochy,
-                pocetFigurek
-        );
-
-        vytvoritHru(pocetHracu, velikostPlochy, pocetFigurek);
-
-        for (int i = 0; i < pocetHracu; i++)
+        if (multiplayer)
         {
-            nastavitPocetFigurek0(i, pocetFigurek);
-        }
+            if (Server.isServer()) // Server
+            {
+                plocha.pripravitHru(
+                        pocetHracu,
+                        pocetSten,
+                        velikostPlochy,
+                        pocetFigurek
+                );
 
-        plocha.zacitHru();
-        zacatekTahu();
+                Server.getInstance().zprava(new String[]{
+                        String.valueOf(pocetHracu),
+                        String.valueOf(pocetSten),
+                        String.valueOf(velikostPlochy),
+                        String.valueOf(pocetFigurek)
+                });
+
+                vytvoritHru(pocetHracu, velikostPlochy, pocetFigurek);
+
+                for (int i = 0; i < pocetHracu; i++)
+                {
+                    nastavitPocetFigurek0(i, pocetFigurek);
+                }
+            }
+            else // Client
+            {
+                String[] strings = Client.getInstance().read();
+
+                plocha.pripravitHru(
+                        Integer.parseInt(strings[0]),
+                        Integer.parseInt(strings[1]),
+                        Integer.parseInt(strings[2]),
+                        Integer.parseInt(strings[3])
+                );
+
+                vytvoritHru(Integer.parseInt(strings[0]), Integer.parseInt(strings[2]), Integer.parseInt(strings[3]));
+
+                for (int i = 0; i < Integer.parseInt(strings[0]); i++)
+                {
+                    nastavitPocetFigurek0(i, Integer.parseInt(strings[3]));
+                }
+
+            }
+
+            plocha.zacitHru();
+            zacatekTahu();
+
+            if (Server.isServer()) realtimeServer();
+            else realtimeClient();
+        }
+        else // Singleplayer
+        {
+            plocha.pripravitHru(
+                    pocetHracu,
+                    pocetSten,
+                    velikostPlochy,
+                    pocetFigurek
+            );
+
+            vytvoritHru(pocetHracu, velikostPlochy, pocetFigurek);
+
+            for (int i = 0; i < pocetHracu; i++)
+            {
+                nastavitPocetFigurek0(i, pocetFigurek);
+            }
+
+            plocha.zacitHru();
+            zacatekTahu();
+        }
 
         start.setDisable(true);
         start.setVisible(false);
@@ -484,17 +555,43 @@ public class ControllerGame
     private void zacatekTahu()
     {
         plocha.zacatekTahu();
-
         zapnoutNasazeni(false);
-        zapnoutKostku(true);
         nastavitKdoHraje(plocha.getPraveHraje().getPoradi());
+
+        if (multiplayer)
+        {
+            if (Server.isServer())
+            {
+                zapnoutKostku(plocha.getPraveHraje().getPoradi() == 0);
+            }
+            else
+            {
+                zapnoutKostku(plocha.getPraveHraje().getPoradi() == Client.getInstance().getPoradi());
+            }
+        }
+        else
+        {
+            zapnoutKostku(true);
+        }
     }
 
     private void posledniFaze() throws Exception
     {
         if (plocha.hratZnovu())
         {
-            zacatekTahu();
+            if (multiplayer)
+            {
+                if (Server.isServer())
+                {
+                    zacatekTahu();
+                    Server.getInstance().zprava(new String[]{"zacatekTahu"});
+                }
+                else Client.getInstance().zprava(new String[]{"zacatekTahu"});
+            }
+            else
+            {
+                zacatekTahu();
+            }
         }
         else
         {
@@ -504,27 +601,54 @@ public class ControllerGame
 
     private void konecTahu() throws Exception
     {
-
         if (plocha.kdoDohral() == plocha.getPocetHracu())
         {
-            konecHry();
+            if (multiplayer)
+            {
+                if (Server.isServer())
+                {
+                    Server.getInstance().zprava(new String[]{"konecHry"});
+                    konecHry();
+                }
+                else
+                {
+                    Client.getInstance().zprava(new String[]{"konecHry"});
+                }
+            }
+            else
+            {
+                konecHry();
+            }
         }
         else
         {
             if (plocha.kdoDohral() > 0)
             {
-                nastavitKonec();
+                if (multiplayer)
+                {
+                    if (Server.isServer()) nastavitKonec();
+                    else Client.getInstance().zprava(new String[]{"nastavitKonec"});
+                }
+                else
+                {
+                    nastavitKonec();
+                }
             }
 
-            plocha.hrajeDalsi();
-
-            if (plocha.getPraveHraje().getJsemVeHre())
+            if (multiplayer)
             {
-                zacatekTahu();
+                if (Server.isServer())
+                {
+                    plocha.hrajeDalsi();
+                    Server.getInstance().zprava(new String[]{"hrajeDalsi"});
+                    zacatekTahu();
+                }
+                else Client.getInstance().zprava(new String[]{"hrajeDalsi"});
             }
             else
             {
-                konecTahu();
+                plocha.hrajeDalsi();
+                zacatekTahu();
             }
         }
     }
@@ -532,6 +656,20 @@ public class ControllerGame
     @FXML
     public void konecHry() throws Exception
     {
+        if (multiplayer)
+        {
+            if (Server.isServer())
+            {
+                timer.cancel();
+                Server.getInstance().konec();
+            }
+            else
+            {
+                timer.cancel();
+                Client.getInstance().konec();
+            }
+        }
+
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("../view/end.fxml")));
         Parent root = loader.load();
 
@@ -548,6 +686,18 @@ public class ControllerGame
         kostka.setText(String.valueOf(plocha.getMujHod()));
         obarvitKostku(barvy[plocha.getPraveHraje().getPoradi()]);
         zapnoutKostku(false);
+
+        if (multiplayer)
+        {
+            if (Server.isServer())
+            {
+                Server.getInstance().zprava(new String[]{"hodKostkou", String.valueOf(plocha.getMujHod())});
+            }
+            else
+            {
+                Client.getInstance().zprava(new String[]{"hodKostkou", String.valueOf(plocha.getMujHod())});
+            }
+        }
 
         if (plocha.getDomecky().get(plocha.getPraveHraje()).getFigurkyDoma().size() == plocha.getPocetFigurek())
         {
@@ -604,6 +754,14 @@ public class ControllerGame
         {
             plocha.vyhodit(plocha.getCesta().get(plocha.getPraveHraje().getStartovniPole()));
             nastavitPocetFigurek0(f.getBarva().getPoradi(), plocha.getDomecky().get(f.getBarva()).getFigurkyDoma().size());
+
+            if (multiplayer)
+            {
+                if (Server.isServer())
+                    Server.getInstance().zprava(new String[]{"vyhodit", String.valueOf(f.getBarva().getPoradi()), String.valueOf(plocha.getPraveHraje().getStartovniPole())});
+                else
+                    Client.getInstance().zprava(new String[]{"vyhodit", String.valueOf(f.getBarva().getPoradi()), String.valueOf(plocha.getPraveHraje().getStartovniPole())});
+            }
         }
 
         plocha.nasaditFigurku(plocha.getPraveHraje());
@@ -611,6 +769,14 @@ public class ControllerGame
         nastavitPole(plocha.getPraveHraje().getStartovniPole(), plocha.getPraveHraje(), true);
 
         nastavitPocetFigurek0(plocha.getPraveHraje().getPoradi(), plocha.getDomecky().get(plocha.getPraveHraje()).getFigurkyDoma().size());
+
+        if (multiplayer)
+        {
+            if (Server.isServer())
+                Server.getInstance().zprava(new String[]{"nasadit"});
+            else
+                Client.getInstance().zprava(new String[]{"nasadit"});
+        }
 
         zacatekTahu();
     }
@@ -635,15 +801,46 @@ public class ControllerGame
             {
                 if (f != null && !f.getBarva().equals(plocha.getPraveHraje()))
                 {
+                    int puvodPozice = f.getPozice();
                     plocha.vyhodit(f);
                     nastavitPocetFigurek0(f.getBarva().getPoradi(), plocha.getDomecky().get(f.getBarva()).getFigurkyDoma().size());
+
+                    if (multiplayer)
+                    {
+                        if (Server.isServer())
+                            Server.getInstance().zprava(new String[]{"vyhodit", String.valueOf(f.getBarva().getPoradi()), String.valueOf(puvodPozice)});
+                        else
+                            Client.getInstance().zprava(new String[]{"vyhodit", String.valueOf(f.getBarva().getPoradi()), String.valueOf(puvodPozice)});
+                    }
                 }
+
+                int puvodPozice = vybranaF.getPozice();
 
                 nastavitPole(vybranaF.getPozice(), plocha.getPraveHraje(), false);
 
                 plocha.posunoutFigurku(vybranaF, pole);
 
                 nastavitPole(pole, plocha.getPraveHraje(), true);
+
+                if (multiplayer)
+                {
+                    if (Server.isServer())
+                        Server.getInstance().zprava(new String[]{
+                                "posunout",
+                                String.valueOf(plocha.getPraveHraje().getPoradi()),
+                                String.valueOf(plocha.getPraveHraje().getFigurkyVeHre().indexOf(vybranaF)),
+                                String.valueOf(puvodPozice),
+                                String.valueOf(pole)
+                        });
+                    else
+                        Client.getInstance().zprava(new String[]{
+                                "posunout",
+                                String.valueOf(plocha.getPraveHraje().getPoradi()),
+                                String.valueOf(plocha.getPraveHraje().getFigurkyVeHre().indexOf(vybranaF)),
+                                String.valueOf(puvodPozice),
+                                String.valueOf(pole)
+                        });
+                }
 
                 vypnoutVsechnaPole();
 
@@ -665,9 +862,35 @@ public class ControllerGame
             {
                 if (vybranaF.getVCili())
                 {
+                    int puvodPozice = vybranaF.getPozice();
+
                     nastavitCilovePole(vybranaF.getPozice(), plocha.getPraveHraje(), false);
 
                     plocha.posunoutFigurkuVCili(vybranaF, pole);
+
+                    if (multiplayer)
+                    {
+                        if (Server.isServer())
+                        {
+                            Server.getInstance().zprava(new String[]{
+                                    "vCili",
+                                    String.valueOf(plocha.getPraveHraje().getPoradi()),
+                                    String.valueOf(plocha.getPraveHraje().getFigurkyVeHre().indexOf(vybranaF)),
+                                    String.valueOf(puvodPozice),
+                                    String.valueOf(pole)
+                            });
+                        }
+                        else
+                        {
+                            Client.getInstance().zprava(new String[]{
+                                    "vCili",
+                                    String.valueOf(plocha.getPraveHraje().getPoradi()),
+                                    String.valueOf(plocha.getPraveHraje().getFigurkyVeHre().indexOf(vybranaF)),
+                                    String.valueOf(puvodPozice),
+                                    String.valueOf(pole)
+                            });
+                        }
+                    }
                 }
                 else
                 {
@@ -683,6 +906,30 @@ public class ControllerGame
 
                     plocha.posunoutFigurkuDoCile(vybranaF, odkud, pole);
                     vybranaF.setvCili(true);
+
+                    if (multiplayer)
+                    {
+                        if (Server.isServer())
+                        {
+                            Server.getInstance().zprava(new String[]{
+                                    "doCile",
+                                    String.valueOf(plocha.getPraveHraje().getPoradi()),
+                                    String.valueOf(plocha.getPraveHraje().getFigurkyVeHre().indexOf(vybranaF)),
+                                    String.valueOf(odkud),
+                                    String.valueOf(pole)
+                            });
+                        }
+                        else
+                        {
+                            Client.getInstance().zprava(new String[]{
+                                    "doCile",
+                                    String.valueOf(plocha.getPraveHraje().getPoradi()),
+                                    String.valueOf(plocha.getPraveHraje().getFigurkyVeHre().indexOf(vybranaF)),
+                                    String.valueOf(odkud),
+                                    String.valueOf(pole)
+                            });
+                        }
+                    }
                 }
 
                 nastavitCilovePole(pole, plocha.getPraveHraje(), true);
@@ -704,6 +951,245 @@ public class ControllerGame
                 plocha.setVybranaFigurka(vybranaF);
                 ukazatMoznosti();
             }
+        }
+    }
+
+    private void realtimeServer()
+    {
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                for (int i = 0; i < plocha.getPocetHracu() - 1; i++)
+                {
+                    try
+                    {
+                        if (i + 1 != plocha.getPraveHraje().getPoradi()) continue;
+
+                        String[] strings = Server.getInstance().read(i);
+                        System.out.println(Arrays.toString(strings));
+                        aktualizovat(strings);
+                        Server.getInstance().zprava(strings);
+                    } catch (IOException e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, 100, 250);
+    }
+
+    private Timer timer;
+
+    private void realtimeClient()
+    {
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                try
+                {
+                    String[] strings = Client.getInstance().read();
+                    aktualizovat(strings);
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }, 100, 250);
+    }
+
+    private void aktualizovat(String[] strings)
+    {
+        switch (strings[0])
+        {
+            case "hodKostkou":
+            {
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        kostka.setText(strings[1]);
+                    }
+                });
+                obarvitKostku(barvy[plocha.getPraveHraje().getPoradi()]);
+            }
+            break;
+            case "kdoHraje":
+            {
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        nastavitKdoHraje(Integer.parseInt(strings[1]));
+                    }
+                });
+            }
+            break;
+            case "hrajeDalsi":
+            {
+                plocha.hrajeDalsi();
+                zacatekTahu();
+            }
+            break;
+            case "zacatekTahu":
+            {
+                zacatekTahu();
+            }
+            break;
+            case "nasadit":
+            {
+                if (Server.isServer())
+                {
+                    if (plocha.getPraveHraje().getPoradi() == 0) break;
+                }
+                else if (plocha.getPraveHraje().getPoradi() == Client.getInstance().getPoradi()) break;
+
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        plocha.nasaditFigurku(plocha.getPraveHraje());
+
+                        nastavitPole(plocha.getPraveHraje().getStartovniPole(), plocha.getPraveHraje(), true);
+
+                        nastavitPocetFigurek0(plocha.getPraveHraje().getPoradi(), plocha.getDomecky().get(plocha.getPraveHraje()).getFigurkyDoma().size());
+                    }
+                });
+            }
+            break;
+            case "vyhodit":
+            {
+                if (Server.isServer())
+                {
+                    if (plocha.getPraveHraje().getPoradi() == 0) break;
+                }
+                else if (plocha.getPraveHraje().getPoradi() == Client.getInstance().getPoradi()) break;
+
+                int poradi = Integer.parseInt(strings[1]);
+
+                plocha.vyhodit(plocha.getCesta().get(Integer.parseInt(strings[2])));
+
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        nastavitPocetFigurek0(poradi, plocha.getDomecky().get(plocha.getHraci().get(poradi)).getFigurkyDoma().size());
+                    }
+                });
+            }
+            break;
+            case "posunout":
+            {
+                if (Server.isServer())
+                {
+                    if (plocha.getPraveHraje().getPoradi() == 0) break;
+                }
+                else if (plocha.getPraveHraje().getPoradi() == Client.getInstance().getPoradi()) break;
+
+                int puvodniPole = Integer.parseInt(strings[3]);
+                int pole = Integer.parseInt(strings[4]);
+                Figurka vybranaF = plocha.getHraci().get(Integer.parseInt(strings[1])).getFigurkyVeHre().get(Integer.parseInt(strings[2]));
+
+                plocha.posunoutFigurku(vybranaF, pole);
+
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        nastavitPole(puvodniPole, vybranaF.getBarva(), false);
+
+                        nastavitPole(pole, plocha.getHraci().get(Integer.parseInt(strings[1])), true);
+                    }
+                });
+            }
+            break;
+            case "vCili":
+            {
+                if (Server.isServer())
+                {
+                    if (plocha.getPraveHraje().getPoradi() == 0) break;
+                }
+                else if (plocha.getPraveHraje().getPoradi() == Client.getInstance().getPoradi()) break;
+
+                int puvodniPole = Integer.parseInt(strings[3]);
+                int pole = Integer.parseInt(strings[4]);
+                Figurka vybranaF = plocha.getHraci().get(Integer.parseInt(strings[1])).getFigurkyVeHre().get(Integer.parseInt(strings[2]));
+
+                plocha.posunoutFigurkuVCili(vybranaF, pole);
+
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        nastavitCilovePole(puvodniPole, plocha.getHraci().get(Integer.parseInt(strings[1])), false);
+
+                        nastavitCilovePole(pole, plocha.getHraci().get(Integer.parseInt(strings[1])), true);
+                    }
+                });
+            }
+            break;
+            case "doCile":
+            {
+                if (Server.isServer())
+                {
+                    if (plocha.getPraveHraje().getPoradi() == 0) break;
+                }
+                else if (plocha.getPraveHraje().getPoradi() == Client.getInstance().getPoradi()) break;
+
+                int puvodniPole = Integer.parseInt(strings[3]);
+                int pole = Integer.parseInt(strings[4]);
+                Figurka vybranaF = plocha.getHraci().get(Integer.parseInt(strings[1])).getFigurkyVeHre().get(Integer.parseInt(strings[2]));
+
+                plocha.posunoutFigurkuDoCile(vybranaF, puvodniPole, pole);
+                vybranaF.setvCili(true);
+
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        nastavitPole(puvodniPole, vybranaF.getBarva(), false);
+
+                        nastavitCilovePole(pole, plocha.getHraci().get(Integer.parseInt(strings[1])), true);
+                    }
+                });
+            }
+            break;
+            case "nastavitKonec":
+            {
+                if (!Server.isServer()) break;
+                nastavitKonec();
+            }
+            break;
+            case "konecHry":
+            {
+                Platform.runLater(new TimerTask()
+                {
+                    @Override
+                    public void run()
+                    {
+                        try
+                        {
+                            konecHry();
+                        } catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+            break;
         }
     }
 }

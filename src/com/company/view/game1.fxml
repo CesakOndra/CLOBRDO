@@ -38,7 +38,7 @@
         </Button>
         <Button fx:id="kostka" alignment="CENTER" focusTraversable="false" maxHeight="60.0" maxWidth="60.0"
                 mnemonicParsing="false" onAction="#hodKostkou" prefHeight="60.0" prefWidth="60.0"
-                style="-fx-background-radius: 0;" text="5" textAlignment="CENTER" GridPane.rowIndex="1">
+                style="-fx-background-radius: 0;" text="X" textAlignment="CENTER" GridPane.rowIndex="1">
             <font>
                 <Font name="System Bold" size="24.0"/>
             </font>

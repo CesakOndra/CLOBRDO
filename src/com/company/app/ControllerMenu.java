@@ -6,7 +6,11 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.TextField;
 
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
 import java.util.Objects;
 
 public class ControllerMenu
@@ -24,6 +28,12 @@ public class ControllerMenu
     public ChoiceBox<Integer> figurkyChoiceBox0;
     @FXML
     public ChoiceBox<Integer> stenyChoiceBox0;
+
+    @FXML
+    public TextField host;
+
+    @FXML
+    public TextField port;
 
     private int velikostHraciPlochy0()
     {
@@ -49,7 +59,7 @@ public class ControllerMenu
         return i;
     }
 
-    public void pripravitMenu()
+    public void pripravitMenu() throws Exception
     {
         // pocet hracu
         for (int i = 2; i <= 8; i++)
@@ -71,6 +81,9 @@ public class ControllerMenu
             stenyChoiceBox0.getItems().add(i);
         }
         stenyChoiceBox0.setValue(6);
+
+        host.setText(Inet4Address.getLocalHost().getHostAddress());
+        port.setText("12358");
     }
 
     @FXML
@@ -83,7 +96,42 @@ public class ControllerMenu
         int pocetFigurek = figurkyChoiceBox0.getValue();
 
         ControllerGame controllerGame = loader.getController();
+        controllerGame.setMultiplayer(false);
         controllerGame.startHry(pocetHracu, pocetFigurek, velikostHraciPlochy0(), stenyChoiceBox0.getValue(), hranPolicka0.isSelected());
+
+        Main.getMyStage().setScene(new Scene(root));
+    }
+
+    @FXML
+    public void vytvoritHru() throws IOException
+    {
+        FXMLLoader loader = new FXMLLoader((Objects.requireNonNull(getClass().getResource("../view/game1.fxml"))));
+        Parent root = loader.load();
+
+        int pocetHracu = playerChoiceBox0.getValue();
+        int pocetFigurek = figurkyChoiceBox0.getValue();
+
+        Server.setIsServer(true);
+        Server.setServer(new Server(pocetHracu, Integer.parseInt(port.getText())));
+
+        ControllerGame controllerGame = loader.getController();
+        controllerGame.setMultiplayer(true);
+        controllerGame.startHry(pocetHracu, pocetFigurek, velikostHraciPlochy0(), stenyChoiceBox0.getValue(), hranPolicka0.isSelected());
+
+        Main.getMyStage().setScene(new Scene(root));
+    }
+
+    @FXML
+    public void pripojitSe() throws IOException
+    {
+        FXMLLoader loader = new FXMLLoader((Objects.requireNonNull(getClass().getResource("../view/game1.fxml"))));
+        Parent root = loader.load();
+
+        Client.setClient(new Client(host.getText(), Integer.parseInt(port.getText())));
+
+        ControllerGame controllerGame = loader.getController();
+        controllerGame.setMultiplayer(true);
+        controllerGame.startHry(0, 0, 0, 0, hranPolicka0.isSelected());
 
         Main.getMyStage().setScene(new Scene(root));
     }

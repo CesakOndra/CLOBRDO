@@ -19,6 +19,11 @@ public class HraciPlocha1
         return plocha;
     }
 
+    public void novaHraciPlocha()
+    {
+        plocha = new HraciPlocha1();
+    }
+
     //endregion
 
     // Hraci kostka
@@ -42,6 +47,11 @@ public class HraciPlocha1
 
     // List hracu
     private List<BarvaFigurky> hraci = new ArrayList<>();
+
+    public List<BarvaFigurky> getHraci()
+    {
+        return hraci;
+    }
 
     // Tabulka sestupne jdoucich hraci, kteri dohrali
     private List<Integer> tabulka = new ArrayList<>();
@@ -240,5 +250,9 @@ public class HraciPlocha1
     {
         int ph = praveHraje.getPoradi() + 1;
         praveHraje = hraci.get((ph < hraci.size()) ? ph : 0);
+        if (!praveHraje.getJsemVeHre())
+        {
+            hrajeDalsi();
+        }
     }
 }
