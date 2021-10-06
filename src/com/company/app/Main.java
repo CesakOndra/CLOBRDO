@@ -29,7 +29,7 @@ public class Main extends Application
     @Override
     public void start(Stage primaryStage) throws Exception
     {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("../view/menu1.fxml"));
+        FXMLLoader loader = new FXMLLoader(Main.class.getResource("../view/menu1.fxml"));
         Parent root = loader.load();
 
         myStage = primaryStage;
