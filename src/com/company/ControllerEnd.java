@@ -1,4 +1,4 @@
-package com.company.app;
+package com.company;
 
 import com.company.model.HraciPlocha1;
 import javafx.fxml.FXML;
@@ -41,7 +41,7 @@ public class ControllerEnd
     @FXML
     public void doHlavnihoMenu() throws Exception
     {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("../view/menu1.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("../resources/menu1.fxml"));
         Parent root = loader.load();
 
         ControllerMenu controllerMenu = loader.getController();

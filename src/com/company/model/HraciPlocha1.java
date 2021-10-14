@@ -1,7 +1,5 @@
 package com.company.model;
 
-import com.company.app.Main;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

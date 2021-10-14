@@ -10,8 +10,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<Pane prefHeight="600.0" prefWidth="750.0" xmlns="http://javafx.com/javafx/11.0.2"
-      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.company.app.ControllerGame">
+<Pane prefHeight="600.0" prefWidth="750.0" xmlns="http://javafx.com/javafx/17.0.0.1"
+      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.company.ControllerGame">
     <FlowPane fx:id="battlefield" prefHeight="600.0" prefWidth="600.0"/>
     <VBox fx:id="playerList" layoutX="600.0" layoutY="150.0" prefHeight="450.0" prefWidth="150.0" spacing="6.0"
           style="-fx-background-color: #eee;">

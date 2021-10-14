@@ -1,14 +1,15 @@
-package com.company.app;
+package com.company;
 
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.util.Arrays;
+import java.util.Objects;
 
 public class Main extends Application
 {
@@ -29,18 +30,22 @@ public class Main extends Application
     @Override
     public void start(Stage primaryStage) throws Exception
     {
-        FXMLLoader loader = new FXMLLoader(Main.class.getResource("../view/menu1.fxml"));
-        Parent root = loader.load();
+        FXMLLoader loader = new FXMLLoader(Main.class.getResource("/menu1.fxml"));
+        Scene scene = new Scene(loader.load());
 
         myStage = primaryStage;
-        System.out.println(Inet4Address.getLocalHost().getHostAddress());
-        System.out.println(InetAddress.getLocalHost().getHostAddress());
+
+        primaryStage.setOnCloseRequest(e ->
+        {
+            Platform.exit();
+            System.exit(0);
+        });
 
         ControllerMenu controllerMenu = loader.getController();
         controllerMenu.pripravitMenu();
 
         primaryStage.setTitle("CLOBRDO");
-        primaryStage.setScene(new Scene(root));
+        primaryStage.setScene(scene);
         primaryStage.show();
     }
 }

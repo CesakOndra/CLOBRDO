@@ -1,12 +1,9 @@
-package com.company.app;
+package com.company;
 
 import com.company.model.BarvaFigurky;
 import com.company.model.Figurka;
 import com.company.model.HraciPlocha1;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -15,7 +12,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -670,7 +666,7 @@ public class ControllerGame
             }
         }
 
-        FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("../view/end.fxml")));
+        FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("/end.fxml")));
         Parent root = loader.load();
 
         ControllerEnd controllerEnd = loader.getController();

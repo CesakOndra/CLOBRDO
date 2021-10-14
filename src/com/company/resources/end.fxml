@@ -5,8 +5,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<Pane prefHeight="600.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/11.0.2"
-      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.company.app.ControllerEnd">
+<Pane prefHeight="600.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/17.0.0.1"
+      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.company.ControllerEnd">
     <VBox fx:id="tabulkaHracu" alignment="CENTER" layoutX="150.0" layoutY="100.0" prefHeight="400.0"
           prefWidth="300.0"/>
     <Button layoutX="220.0" onAction="#doHlavnihoMenu" layoutY="525.0" mnemonicParsing="false" prefHeight="40.0"
